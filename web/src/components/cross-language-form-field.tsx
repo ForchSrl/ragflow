@@ -6,6 +6,8 @@ import {
 } from '@/components/ui/form';
 import { MultiSelect } from '@/components/ui/multi-select';
 import { cn } from '@/lib/utils';
+import { t } from 'i18next';
+import { toLower } from 'lodash';
 import { useFormContext } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 
@@ -21,7 +23,10 @@ const Languages = [
   'Italian',
 ];
 
-const options = Languages.map((x) => ({ label: x, value: x }));
+const options = Languages.map((x) => ({
+  label: t('language.' + toLower(x)),
+  value: x,
+}));
 
 type CrossLanguageItemProps = {
   name?: string;

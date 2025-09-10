@@ -13,6 +13,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 #
+import json
 import os
 import re
 from abc import ABC
@@ -192,6 +193,19 @@ class ExeSQL(ToolBase, ABC):
         sql = kwargs.get("sql")
         if not sql:
             raise Exception("SQL for `ExeSQL` MUST not be empty.")
+
+        vars = self.get_input_elements_from_text(sql)
+        args = {}
+        for k, o in vars.items():
+            args[k] = o["value"]
+            if not isinstance(args[k], str):
+                try:
+                    args[k] = json.dumps(args[k], ensure_ascii=False)
+                except Exception:
+                    args[k] = str(args[k])
+            self.set_input_value(k, args[k])
+        sql = self.string_format(sql, args)
+
         # Resolve DB override directive (if present) and strip it from SQL
         db_override, sql = extract_db_override(sql)
 
@@ -228,7 +242,6 @@ class ExeSQL(ToolBase, ABC):
         password = profile_conf.get('password') or self._param.password
         port = int(profile_conf.get('port') or self._param.port)
         database = db_override or self._param.database or profile_conf.get('database')
-
         if self._param.db_type in ["mysql", "mariadb"]:
             db = pymysql.connect(db=database, user=user, host=host, port=port, password=password)
         elif self._param.db_type == 'postgresql':
