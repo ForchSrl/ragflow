@@ -2,10 +2,12 @@
     "id": 13,
     "title": {
         "en": "ImageLingo",
-        "zh": "图片解析"},
+        "zh": "图片解析",
+        "it": "ImageLingo"},
     "description": {
         "en": "ImageLingo lets you snap any photo containing text—menus, signs, or documents—and instantly recognize and translate it into your language of choice using advanced AI-powered translation technology.",
-        "zh": "多模态大模型允许您拍摄任何包含文本的照片——菜单、标志或文档——立即识别并转换成您选择的语言。"},
+        "zh": "多模态大模型允许您拍摄任何包含文本的照片——菜单、标志或文档——立即识别并转换成您选择的语言。",
+        "it": "ImageLingo ti permette di scattare una foto di qualsiasi immagine contenente testo — menu, cartelli o documenti — e di riconoscerlo e tradurlo all'istante nella lingua che preferisci grazie a una tecnologia di traduzione avanzata basata su AI."},
     "canvas_type": "Consumer App",
     "dsl": {
             "components": {

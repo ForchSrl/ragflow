@@ -78,6 +78,21 @@ class ValidateSQL(ToolBase, ABC):
         logger.info(f"ValidateSQL: Incoming SQL: {sql}")
 
         s = sql.replace('```', '').strip()
+        # Capture and temporarily strip leading DB override directive for validation,
+        # then re-attach it to the sanitized SQL so downstream executors can honor it.
+        # Supported forms (must appear at the very beginning, ignoring leading whitespace):
+        #   -- DB: MyDatabase
+        #   /* DB: MyDatabase */
+        db_override = None
+        m = re.match(r"^\s*--\s*DB\s*:\s*([A-Za-z0-9_.$-]+)\s*(?:\r?\n|$)", s, re.IGNORECASE)
+        if m:
+            db_override = m.group(1)
+            s = s[m.end():].lstrip()
+        else:
+            m2 = re.match(r"^\s*/\*\s*DB\s*:\s*([A-Za-z0-9_.$-]+)\s*\*/\s*", s, re.IGNORECASE)
+            if m2:
+                db_override = m2.group(1)
+                s = s[m2.end():].lstrip()
         s = re.sub(r"\[ID:[0-9]+\]", "", s)
         if s.endswith(';'):
             s = s[:-1]
@@ -129,6 +144,10 @@ class ValidateSQL(ToolBase, ABC):
                     s = re.sub(r"^\s*SELECT\s+DISTINCT\s+", f"SELECT DISTINCT TOP {max_limit} ", s, flags=re.IGNORECASE)
                 else:
                     s = re.sub(r"^\s*SELECT\s+", f"SELECT TOP {max_limit} ", s, flags=re.IGNORECASE)
+
+        # Re-attach DB override directive if it was present initially so ExeSQL can parse it.
+        if db_override:
+            s = f"-- DB: {db_override}\n" + s
 
         self.set_output("sql", s)
         return s

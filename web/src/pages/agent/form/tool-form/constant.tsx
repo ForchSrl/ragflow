@@ -10,6 +10,7 @@ import ExeSQLForm from './exesql-form';
 import GithubForm from './github-form';
 import GoogleForm from './google-form';
 import GoogleScholarForm from './google-scholar-form';
+import KBEditorForm from './kb-editor-form';
 import PubMedForm from './pubmed-form';
 import RetrievalForm from './retrieval-form';
 import SearXNGForm from './searxng-form';
@@ -39,4 +40,6 @@ export const ToolFormConfigMap = {
   [Operator.TavilyExtract]: TavilyForm,
   [Operator.WenCai]: WenCaiForm,
   [Operator.SearXNG]: SearXNGForm,
+  // Custom tools not in Operator enum can key by component_name string
+  KBEditor: KBEditorForm,
 };

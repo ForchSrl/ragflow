@@ -15,6 +15,7 @@ function UserSettingLocale() {
         'ja',
         'pt-br',
         'German',
+        'Italian',
       ]}
     />
   );

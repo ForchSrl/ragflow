@@ -3,19 +3,25 @@ include:
 # To ensure that the container processes the locally modified `service_conf.yaml.template` instead of the one included in its image, you need to mount the local `service_conf.yaml.template` to the container.
 services:
   ragflow:
+    platform: linux/amd64
     depends_on:
       mysql:
         condition: service_healthy
-    image: ${RAGFLOW_IMAGE}
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      args:
+        LIGHTEN: "1"
+    image: ragflow:light
     # Example configuration to set up an MCP server:
-    # command:
-    #   - --enable-mcpserver
-    #   - --mcp-host=0.0.0.0
-    #   - --mcp-port=9382
-    #   - --mcp-base-url=http://127.0.0.1:9380
-    #   - --mcp-script-path=/ragflow/mcp/server/server.py
-    #   - --mcp-mode=self-host
-    #   - --mcp-host-api-key=ragflow-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+    command:
+       - --enable-mcpserver
+       - --mcp-host=0.0.0.0
+       - --mcp-port=9382
+       - --mcp-base-url=http://127.0.0.1:9380
+       - --mcp-script-path=/ragflow/mcp/server/server.py
+       - --mcp-mode=self-host
+       - --mcp-host-api-key=${RAGFLOW_API_KEY}
     # Optional transport flags for MCP (customize if needed).
     # Host mode need to combined with --no-transport-streamable-http-enabled flag, namely, host+streamable-http is not supported yet.
     # The following are enabled by default unless explicitly disabled with --no-<flag>.
@@ -38,6 +44,7 @@ services:
       - ../history_data_agent:/ragflow/history_data_agent
       - ./service_conf.yaml.template:/ragflow/conf/service_conf.yaml.template
       - ./entrypoint.sh:/ragflow/entrypoint.sh
+      
     env_file: .env
     environment:
       - TZ=${TIMEZONE}
@@ -50,6 +57,45 @@ services:
     # If you use Docker Desktop, the --add-host flag is optional. This flag ensures that the host's internal IP is exposed to the Prometheus container.
     extra_hosts:
       - "host.docker.internal:host-gateway"
+
+  # Langfuse observability stack (optional)
+  langfuse-db:
+    image: postgres:15
+    container_name: langfuse-db
+    environment:
+      - POSTGRES_USER=${LANGFUSE_PG_USER}
+      - POSTGRES_PASSWORD=${LANGFUSE_PG_PASSWORD}
+      - POSTGRES_DB=${LANGFUSE_PG_DB}
+    volumes:
+      - ./ragflow-logs/langfuse-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ragflow
+    restart: on-failure
+
+  langfuse:
+    image: langfuse/langfuse:latest
+    container_name: langfuse
+    depends_on:
+      langfuse-db:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgres://${LANGFUSE_PG_USER}:${LANGFUSE_PG_PASSWORD}@langfuse-db:5432/${LANGFUSE_PG_DB}
+      - NEXTAUTH_SECRET=${LANGFUSE_NEXTAUTH_SECRET}
+      - NEXTAUTH_URL=${LANGFUSE_PUBLIC_URL}
+      - SALT=${LANGFUSE_SALT}
+      - ENCRYPTION_KEY=${LANGFUSE_ENCRYPTION_KEY}
+      - HOSTNAME=0.0.0.0
+      - PORT=3000
+    ports:
+      - ${LANGFUSE_PORT-3000}:3000
+    networks:
+      - ragflow
+    restart: on-failure
   # executor:
   #   depends_on:
   #     mysql:

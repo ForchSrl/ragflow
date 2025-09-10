@@ -320,6 +320,16 @@ export const useSendAgentMessage = (
 
   const handlePressEnter = useCallback(() => {
     if (trim(value) === '') return;
+    const raw = trim(value);
+    // Automatic rule evaluation: if the user message looks like a correction,
+    // let the RuleEvaluator decide whether to persist a rule, and if yes,
+    // call RuleSaver with summarized content. This removes the need for a button.
+    const looksLikeCorrection =
+      /\b(sbagliat|corrett|errat|wrong|fix|correction|sql\s+corretto)\b/i.test(
+        raw,
+      ) ||
+      (/\bselect\b/i.test(raw) && /\bfrom\b/i.test(raw));
+
     const msgBody = buildRequestBody(value);
     if (done) {
       setValue('');
@@ -331,6 +341,56 @@ export const useSendAgentMessage = (
     setTimeout(() => {
       scrollToBottom();
     }, 100);
+
+    // After sending, asynchronously evaluate and persist rule if applicable
+    if (looksLikeCorrection) {
+      (async () => {
+        try {
+          const listRes = await fetch(api.listCanvas, { method: 'POST' });
+          const data = await listRes.json();
+          const items = Array.isArray(data?.data?.items) ? data.data.items : [];
+          const evaluator = items.find(
+            (x: any) => (x?.title || '').toLowerCase() === 'ruleevaluator',
+          );
+          const saver = items.find(
+            (x: any) => (x?.title || '').toLowerCase() === 'rulesaver',
+          );
+          if (!evaluator?.id || !saver?.id) {
+            console.warn('RuleEvaluator or RuleSaver agent not found');
+            return;
+          }
+          // Run evaluator
+          const evalInputs = transferInputsArrayToObject([
+            { key: 'user_message', value: raw },
+          ]);
+          const evalRes = await send({
+            id: evaluator.id,
+            inputs: evalInputs,
+            session_id: null,
+          });
+          const content = (evalRes as any)?.data?.outputs?.content || '';
+          let decision: any = null;
+          try {
+            decision = JSON.parse(content);
+          } catch {}
+          if (decision && decision.save === true) {
+            const saverInputs = transferInputsArrayToObject([
+              {
+                key: 'correction_text',
+                value: decision.correction_text || raw,
+              },
+              { key: 'fixed_sql', value: decision.fixed_sql || '' },
+              { key: 'question', value: decision.question || '' },
+              { key: 'rationale', value: decision.rationale || '' },
+            ]);
+            await send({ id: saver.id, inputs: saverInputs, session_id: null });
+            sonnerMessage.success('Rule saved');
+          }
+        } catch (e) {
+          console.warn('Auto SaveRule skipped:', e);
+        }
+      })();
+    }
   }, [
     value,
     done,
@@ -339,6 +399,7 @@ export const useSendAgentMessage = (
     setValue,
     sendMessage,
     scrollToBottom,
+    send,
   ]);
 
   const sendedTaskMessage = useRef<boolean>(false);

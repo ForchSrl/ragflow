@@ -2,10 +2,12 @@
     "id": 12,
     "title": {
         "en": "Generate SEO Blog",
-        "zh": "生成SEO博客"},
+        "zh": "生成SEO博客",
+        "it": "Genera blog SEO"},
     "description": {
         "en": "This workflow automatically generates a complete SEO-optimized blog article based on a simple user input. You don’t need any writing experience. Just provide a topic or short request — the system will handle the rest.",
-        "zh": "此工作流根据简单的用户输入自动生成完整的SEO博客文章。你无需任何写作经验，只需提供一个主题或简短请求，系统将处理其余部分。"},
+        "zh": "此工作流根据简单的用户输入自动生成完整的SEO博客文章。你无需任何写作经验，只需提供一个主题或简短请求，系统将处理其余部分。",
+        "it": "Questo workflow genera automaticamente un articolo di blog ottimizzato per la SEO a partire da un semplice input dell'utente. Non serve alcuna esperienza di scrittura: basta fornire un argomento o una breve richiesta — al resto pensa il sistema."},
     "canvas_type": "Marketing",
     "dsl": {
             "components": {

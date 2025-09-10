@@ -508,4 +508,3 @@ class Canvas(Graph):
 
     def get_component_thoughts(self, cpn_id) -> str:
         return self.components.get(cpn_id)["obj"].thoughts()
-

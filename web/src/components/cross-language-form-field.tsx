@@ -18,6 +18,7 @@ const Languages = [
   'Japanese',
   'Korean',
   'Vietnamese',
+  'Italian',
 ];
 
 const options = Languages.map((x) => ({ label: x, value: x }));
