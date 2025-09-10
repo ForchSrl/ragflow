@@ -150,6 +150,13 @@ class CustomJSONEncoder(json.JSONEncoder):
             return obj.strftime('%Y-%m-%d')
         elif isinstance(obj, datetime.timedelta):
             return str(obj)
+        elif isinstance(obj, (bytes, bytearray)):
+            # Ensure binary payloads never break JSON serialization during streaming.
+            # Prefer base64 string to avoid UTF-8 decoding errors.
+            try:
+                return base64.b64encode(obj).decode('ascii')
+            except Exception:
+                return str(obj)
         elif issubclass(type(obj), Enum) or issubclass(type(obj), IntEnum):
             return obj.value
         elif isinstance(obj, set):
