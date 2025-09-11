@@ -1,0 +1,67 @@
+{
+  "id": 901,
+  "title": {"en": "KB Maintainer"},
+  "description": {"en": "Agent to append/replace/delete KB content using KBEditor."},
+  "canvas_type": "Utility",
+  "dsl": {
+    "components": {
+      "begin": {
+        "downstream": [
+          "KBEditor:ToolNode"
+        ],
+        "obj": {
+          "component_name": "Begin",
+          "params": {
+            "enablePrologue": true,
+            "inputs": {
+              "action": {"name": "Action", "type": "line", "value": "append_chunk"},
+              "dataset_id": {"name": "Dataset ID", "type": "line", "value": ""},
+              "document_id": {"name": "Document ID", "type": "line", "optional": true},
+              "chunk_id": {"name": "Chunk ID", "type": "line", "optional": true},
+              "content": {"name": "Content", "type": "paragraph", "value": ""},
+              "filename": {"name": "Filename", "type": "line", "value": "update.md"},
+              "mime": {"name": "MIME", "type": "line", "value": "text/markdown"}
+            },
+            "mode": "task",
+            "prologue": "Fill in the KB edit parameters below."
+          }
+        },
+        "upstream": []
+      },
+      "KBEditor:ToolNode": {
+        "downstream": [],
+        "obj": {
+          "component_name": "KBEditor",
+          "params": {
+            "action": "append_chunk",
+            "dataset_id": "",
+            "document_id": "",
+            "chunk_id": "",
+            "content": "{sys.query}",
+            "filename": "update.md",
+            "mime": "text/markdown"
+          }
+        },
+        "upstream": [
+          "begin"
+        ]
+      }
+    },
+    "globals": {
+      "sys.conversation_turns": 0,
+      "sys.user_id": ""
+    },
+    "graph": {
+      "edges": [
+        {"id": "xy-edge__beginstart-KBEditor:ToolNodeend", "source": "begin", "sourceHandle": "start", "target": "KBEditor:ToolNode", "targetHandle": "end", "data": {"isHovered": false}},
+        {"id": "xy-edge__KBEditor:ToolNodestart-Message:Resultend", "source": "KBEditor:ToolNode", "sourceHandle": "start", "target": "Message:Result", "targetHandle": "end", "data": {"isHovered": false}}
+      ],
+      "nodes": [
+        {"id": "begin", "type": "beginNode", "data": {"label": "Begin", "name": "begin", "form": {"enablePrologue": true, "inputs": {"action": {"name": "Action", "type": "line", "value": "append_chunk"}, "dataset_id": {"name": "Dataset ID", "type": "line", "value": ""}, "document_id": {"name": "Document ID", "type": "line", "optional": true}, "chunk_id": {"name": "Chunk ID", "type": "line", "optional": true}, "content": {"name": "Content", "type": "paragraph", "value": ""}, "filename": {"name": "Filename", "type": "line", "value": "update.md"}, "mime": {"name": "MIME", "type": "line", "value": "text/markdown"}}, "mode": "task", "prologue": "Fill in the KB edit parameters below."}}, "position": {"x": 80, "y": 160}, "selected": false, "measured": {"width": 200, "height": 48}, "sourcePosition": "left", "targetPosition": "right"},
+        {"id": "KBEditor:ToolNode", "type": "ragNode", "data": {"label": "KBEditor", "name": "KBEditor:ToolNode", "form": {"action": "{begin@action}", "dataset_id": "{begin@dataset_id}", "document_id": "{begin@document_id}", "chunk_id": "{begin@chunk_id}", "content": "{begin@content}", "filename": "{begin@filename}", "mime": "{begin@mime}"}}, "position": {"x": 360, "y": 150}, "selected": false, "measured": {"width": 200, "height": 96}, "sourcePosition": "right", "targetPosition": "left"},
+        {"id": "Message:Result", "type": "messageNode", "data": {"label": "Message", "name": "Message:Result", "form": {"content": ["{KBEditor:ToolNode@message}"]}}, "position": {"x": 620, "y": 155}, "selected": false, "measured": {"width": 200, "height": 56}, "sourcePosition": "right", "targetPosition": "left"}
+      ]
+    },
+    "retrieval": []
+  }
+}

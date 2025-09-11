@@ -1,0 +1,69 @@
+{
+  "id": 902,
+  "title": {"en": "Knowledge Curator"},
+  "description": {"en": "Turns user corrections + recent logs into durable KB docs (business rules, Q→SQL samples, glossary)."},
+  "canvas_type": "Utility",
+  "dsl": {
+    "components": {
+      "begin": {
+        "downstream": ["ReadLearningLog:Recent"],
+        "obj": {"component_name": "Begin", "params": {"enablePrologue": true, "inputs": {"filter": {"name": "Log contains (optional)", "type": "line", "value": "", "optional": true}}, "mode": "task", "prologue": "Optionally filter recent logs; Curator will infer rules automatically."}},
+        "upstream": []
+      },
+      
+      "ReadLearningLog:Recent": {
+        "downstream": ["Agent:AutoDoc"],
+        "obj": {"component_name": "ReadLearningLog", "params": {"limit": 5, "path": "history_data_agent/sql_learning.md", "contains": "{begin@filter}", "from_date": "{begin@from_date}", "to_date": "{begin@to_date}"}},
+        "upstream": ["begin"]
+      },
+      "Agent:AutoDoc": {
+        "downstream": ["SectionExtract:Q2SQL", "KBEditor:Writer"],
+        "obj": {
+          "component_name": "Agent",
+          "params": {
+            "llm_id": "gemini-2.5-flash@Gemini",
+            "max_rounds": 3,
+            "sys_prompt": "You are a Knowledge Curator. Infer recurring business rules and schema-grounded semantics from recent interactions only. When field/table names are uncertain, call schema_probe (op=columns/fks/sample) for the candidate tables to align to actual SQL Server schema. Then produce: (1) a short Business Rule note (markdown), (2) 1–2 Q→SQL examples (T-SQL Server; fully-qualified cross-DB names), (3) glossary/synonyms additions. Output one combined markdown with sections: 'Business Rule', 'Q→SQL Examples', 'Glossary'.",
+            "prompts": [{"role": "user", "content": "Recent interactions (JSON):\n{ReadLearningLog:Recent@entries}\n\nIf needed, probe schema via tool calls before drafting."}],
+            "tools": [
+              {"name": "SchemaProbe:Tool", "component_name": "SchemaProbe", "params": {}}
+            ]
+          }
+        },
+        "upstream": ["ReadLearningLog:Recent"]
+      },
+      
+      "SectionExtract:Q2SQL": {
+        "downstream": ["KBEditor:Q2SQL"],
+        "obj": {"component_name": "SectionExtract", "params": {"text": "{Agent:AutoDoc@content}", "heading": "Q→SQL Examples", "level": 2, "include_heading": true}},
+        "upstream": ["Agent:AutoDoc"]
+      },
+      "KBEditor:Writer": {
+        "downstream": [],
+        "obj": {"component_name": "KBEditor", "params": {"action": "append_chunk", "dataset_id": "50bf820c87d311f0b8a6de8075d81b0a", "document_id": "", "chunk_id": "", "content": "{Agent:AutoDoc@content}", "filename": "auto_doc.md", "mime": "text/markdown"}},
+        "upstream": ["Agent:AutoDoc"]
+      },
+      "KBEditor:Q2SQL": {
+        "downstream": [],
+        "obj": {"component_name": "KBEditor", "params": {"action": "append_chunk", "dataset_id": "50bc853487d311f08786de8075d81b0a", "document_id": "", "chunk_id": "", "content": "{SectionExtract:Q2SQL@content}", "filename": "q2sql_examples.md", "mime": "text/markdown"}},
+        "upstream": ["SectionExtract:Q2SQL"]
+      }
+    },
+    "globals": {"sys.conversation_turns": 0, "sys.user_id": ""},
+    "graph": {"edges": [
+      {"id": "xy-edge__beginstart-ReadLearningLog:Recentend", "source": "begin", "sourceHandle": "start", "target": "ReadLearningLog:Recent", "targetHandle": "end", "data": {"isHovered": false}},
+      {"id": "xy-edge__ReadLearningLog:Recentstart-Agent:AutoDocend", "source": "ReadLearningLog:Recent", "sourceHandle": "start", "target": "Agent:AutoDoc", "targetHandle": "end", "data": {"isHovered": false}},
+      {"id": "xy-edge__Agent:AutoDocstart-SectionExtract:Q2SQLend", "source": "Agent:AutoDoc", "sourceHandle": "start", "target": "SectionExtract:Q2SQL", "targetHandle": "end", "data": {"isHovered": false}},
+      {"id": "xy-edge__Agent:AutoDocstart-KBEditor:Writerend", "source": "Agent:AutoDoc", "sourceHandle": "start", "target": "KBEditor:Writer", "targetHandle": "end", "data": {"isHovered": false}},
+      {"id": "xy-edge__SectionExtract:Q2SQLstart-KBEditor:Q2SQLend", "source": "SectionExtract:Q2SQL", "sourceHandle": "start", "target": "KBEditor:Q2SQL", "targetHandle": "end", "data": {"isHovered": false}}
+    ], "nodes": [
+      {"id": "begin", "type": "beginNode", "data": {"label": "Begin", "name": "begin", "form": {"enablePrologue": true, "inputs": {"filter": {"name": "Log contains (optional)", "type": "line", "value": "", "optional": true}, "from_date": {"name": "From date (YYYY-MM-DD optional)", "type": "line", "value": "", "optional": true}, "to_date": {"name": "To date (YYYY-MM-DD optional)", "type": "line", "value": "", "optional": true}}, "mode": "task", "prologue": "Optionally filter recent logs; Curator will infer rules automatically."}}, "position": {"x": 40, "y": 140}, "selected": false, "measured": {"width": 200, "height": 48}, "sourcePosition": "left", "targetPosition": "right"},
+      {"id": "ReadLearningLog:Recent", "type": "ragNode", "data": {"label": "ReadLearningLog", "name": "ReadLearningLog:Recent", "form": {"limit": 5, "path": "history_data_agent/sql_learning.md", "contains": ""}}, "position": {"x": 300, "y": 130}, "selected": false, "measured": {"width": 220, "height": 96}, "sourcePosition": "right", "targetPosition": "left"},
+      {"id": "Agent:AutoDoc", "type": "agentNode", "data": {"label": "Agent", "name": "Agent:AutoDoc", "form": {"llm_id": "gemini-2.5-flash@Gemini", "max_rounds": 3, "sys_prompt": "You are a Knowledge Curator. Infer recurring business rules and schema-grounded semantics from recent interactions only. Then produce: (1) a short Business Rule note (markdown), (2) 1–2 Q→SQL examples (T-SQL Server; fully-qualified cross-DB names), (3) glossary/synonyms additions. Always align field names to the actual columns listed below. Output a single combined markdown with sections: 'Business Rule', 'Q→SQL Examples', 'Glossary'.", "prompts": [{"role": "user", "content": "Recent interactions (JSON):\n{ReadLearningLog:Recent@entries}\n\nSalesperson columns (MD):\n{ExeSQL:SalespersonCols@formalized_content}"}]}}, "position": {"x": 580, "y": 120}, "selected": false, "measured": {"width": 240, "height": 110}, "sourcePosition": "right", "targetPosition": "left"},
+      {"id": "SectionExtract:Q2SQL", "type": "ragNode", "data": {"label": "SectionExtract", "name": "SectionExtract:Q2SQL", "form": {"text": "{Agent:AutoDoc@content}", "heading": "Q→SQL Examples", "level": 2, "include_heading": true}}, "position": {"x": 880, "y": 60}, "selected": false, "measured": {"width": 220, "height": 96}, "sourcePosition": "right", "targetPosition": "left"},
+      {"id": "KBEditor:Writer", "type": "ragNode", "data": {"label": "KBEditor", "name": "KBEditor:Writer", "form": {"action": "append_chunk", "dataset_id": "50bf820c87d311f0b8a6de8075d81b0a", "document_id": "", "chunk_id": "", "content": "{Agent:AutoDoc@content}", "filename": "auto_doc.md", "mime": "text/markdown"}}, "position": {"x": 880, "y": 180}, "selected": false, "measured": {"width": 220, "height": 96}, "sourcePosition": "right", "targetPosition": "left"},
+      {"id": "KBEditor:Q2SQL", "type": "ragNode", "data": {"label": "KBEditor", "name": "KBEditor:Q2SQL", "form": {"action": "append_chunk", "dataset_id": "50bc853487d311f08786de8075d81b0a", "document_id": "", "chunk_id": "", "content": "{SectionExtract:Q2SQL@content}", "filename": "q2sql_examples.md", "mime": "text/markdown"}}, "position": {"x": 1160, "y": 40}, "selected": false, "measured": {"width": 220, "height": 96}, "sourcePosition": "right", "targetPosition": "left"}
+    ]},
+    "retrieval": []
+  }
+}
