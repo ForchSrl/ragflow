@@ -1584,6 +1584,7 @@ This delimiter is used to split the input text into several text pieces echo of 
       japanese: 'Japanese',
       korean: 'Korean',
       vietnamese: 'Vietnamese',
+      italian: 'Italian',
     },
     pagination: {
       total: 'Total {{total}}',

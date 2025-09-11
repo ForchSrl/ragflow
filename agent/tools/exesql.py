@@ -65,12 +65,15 @@ class ExeSQLParam(ToolParamBase):
             prof = getattr(self, 'connection_profile', "")
             if not prof or not os.environ.get(re.sub(r"[^A-Za-z0-9]", "_", prof).upper() + "_DEFAULT_DB", ""):
                 self.check_empty(self.database, "Database name")
-        # Require inline creds only when no profile is configured
+        # Require inline creds only when no profile is configured.
+        # For MSSQL, allow empty inline creds to enable env/profile-only configuration
+        # and per-query DB override via directive.
         if not getattr(self, 'connection_profile', ""):
-            self.check_empty(self.username, "database username")
-            self.check_empty(self.host, "IP Address")
-            self.check_positive_integer(self.port, "IP Port")
-            self.check_empty(self.password, "Database password")
+            if self.db_type.lower() != 'mssql':
+                self.check_empty(self.username, "database username")
+                self.check_empty(self.host, "IP Address")
+                self.check_positive_integer(self.port, "IP Port")
+                self.check_empty(self.password, "Database password")
         self.check_positive_integer(self.max_records, "Maximum number of records")
         if self.database == "rag_flow":
             if self.host == "ragflow-mysql":

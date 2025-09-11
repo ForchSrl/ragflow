@@ -77,7 +77,23 @@ class ValidateSQL(ToolBase, ABC):
 
         logger.info(f"ValidateSQL: Incoming SQL: {sql}")
 
-        s = sql.replace('```', '').strip()
+        # Extract SQL from possible prose + fenced markdown code blocks
+        src = sql or ""
+        mblock = re.search(r"```\s*sql\s*\n(.*?)```", src, re.IGNORECASE | re.DOTALL)
+        if not mblock:
+            mblock = re.search(r"```\s*\n(.*?)```", src, re.IGNORECASE | re.DOTALL)
+        if mblock:
+            s = mblock.group(1).strip()
+        else:
+            # Fallback: cut leading prose until the first DB directive or SELECT/WITH
+            mdir = re.search(r"(?i)(?:^|\n)\s*(--\s*DB\s*:|/\*\s*DB\s*:)", src)
+            msel = re.search(r"(?i)\bWITH\b|\bSELECT\b", src)
+            cut = None
+            if mdir:
+                cut = mdir.start()
+            if msel and (cut is None or msel.start() < cut):
+                cut = msel.start()
+            s = src[cut:].strip() if cut is not None else src.strip()
         # Capture and temporarily strip leading DB override directive for validation,
         # then re-attach it to the sanitized SQL so downstream executors can honor it.
         # Supported forms (must appear at the very beginning, ignoring leading whitespace):
