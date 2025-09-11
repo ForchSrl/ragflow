@@ -84,14 +84,27 @@ class ValidateSQL(ToolBase, ABC):
         #   -- DB: MyDatabase
         #   /* DB: MyDatabase */
         db_override = None
-        m = re.match(r"^\s*--\s*DB\s*:\s*([A-Za-z0-9_.$-]+)\s*(?:\r?\n|$)", s, re.IGNORECASE)
+        # Support forms like:
+        #   -- DB: FORCH_NAVISION
+        #   -- DB: FORCH_NAVISION (default)
+        #   -- DB: [FORCH_NAVISION]
+        # and block comment variants: /* DB: FORCH_NAVISION */ (with optional (..))
+        m = re.match(
+            r"^\s*--\s*DB\s*:\s*(?:\[(?P<dbbr>[^\]]+)\]|(?P<db>[A-Za-z0-9_.$-]+))(?:\s*\([^)]*\))?\s*(?:\r?\n|$)",
+            s,
+            re.IGNORECASE,
+        )
         if m:
-            db_override = m.group(1)
+            db_override = m.group("dbbr") or m.group("db")
             s = s[m.end():].lstrip()
         else:
-            m2 = re.match(r"^\s*/\*\s*DB\s*:\s*([A-Za-z0-9_.$-]+)\s*\*/\s*", s, re.IGNORECASE)
+            m2 = re.match(
+                r"^\s*/\*\s*DB\s*:\s*(?:\[(?P<dbbr>[^\]]+)\]|(?P<db>[A-Za-z0-9_.$-]+))(?:\s*\([^)]*\))?\s*\*/\s*",
+                s,
+                re.IGNORECASE,
+            )
             if m2:
-                db_override = m2.group(1)
+                db_override = m2.group("dbbr") or m2.group("db")
                 s = s[m2.end():].lstrip()
         s = re.sub(r"\[ID:[0-9]+\]", "", s)
         if s.endswith(';'):
